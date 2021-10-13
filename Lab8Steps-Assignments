@@ -1,0 +1,25 @@
+REGION ASSIGNMENTS: 
+
+Claire 
+- West & Southwest
+
+Kylie
+- Northeast
+
+Maddie 
+- Southeast
+
+Emma 
+- Midwest
+
+SEPS FOR GETTING DATA:
+- Nexus Uni
+- Filter using the states in your region
+- Find articles from different publications (10-15 articles)
+- Merge articles from different newspapers into a "Region Corpus" (create clean dataset and export the final corpus, should have a total of 5 dataset corpus files, one for each region)
+
+TO SUBMIT:  
+- Github repo link, 5 dataset files, individual Rmd file, group knitted HTML file
+
+
+
