@@ -1,0 +1,399 @@
+---
+title: "Western U.S. Text Analysis"
+author: "Claire Dozier (ced9mq)"
+date: "10/20/2021"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Text Analysis: Western United States 
+
+In this analysis, I will examine regional climate change support through a preliminary text analysis (including sentiment and tf-idf analyses) of 15 newspaper articles from Western publications. For purposes of this analysis, when I refer to the "West" I am considering the following 11 states: 
+
+  * California
+  * Oregon
+  * Washington
+  * Idaho
+  * Montana
+  * Wyoming
+  * Colorado
+  * Nevada
+  * Arizona
+  * New Mexico
+  * Utah
+  
+To select the articles that will form the 'West Corpus,' I limited the time-frame search in NexisUni to articles after January 1, 2000, to present (October 2021). I also provided a set of terms that I wished to track to the search engine. These were the terms chosen: 
+
+  * Climate change
+  * Electric
+  * Energy
+  * Renewable 
+  * Solar 
+  * Wind
+  * Oil 
+  * Fossil fuels
+  * Coal
+  * Carbon
+  * Emissions
+  * Greenhouse gas
+  * Global warming
+  * Temperature
+  * Sea levels
+  * Methane
+  * Footprint
+  * Cars
+  * Pollution
+
+I chose these terms based on my own knowledge of climate change issues and common terms associated with the field. There are likely many other pertinent terms that would be interesting to track (these would be something that could be identified with the help of subject matter experts), but for this analysis the focus was limited to these 19 terms. The articles were selected largely at random, but I had the aim of trying to diversify where I drew articles from (i.e. I tried to choose a range of articles from different states). I did not consider any potential newspaper political leanings/affiliations when selecting the articles. 
+
+```{r Load libraries, warning=FALSE, console=FALSE, message = FALSE}
+## Load libraries
+library(tidyverse)
+library(tidytext)
+library(ggwordcloud)
+library(textdata)
+# install.packages('textreadr') - to read rtf files
+library(textreadr)
+```
+# Corpus Creation
+
+Prior to beginning the analysis I had to construct my "West Corpus" using the 15 articles I selected. I first locally downloaded the 15 articles at RTF (rich text format) files to my local machine. Then, I read in each article, converted the raw data to a tibble, extracted the relevant rows with article text, and used the "data_prep" function presented in class to get the article text into a single row. I then created a bag-of-words (BOW) representation of the corpus (two columns, one for article number and the other for the bag-of-words article text). I then exported this BOW representation of the corpus to a CSV file (file is attached to my assignment submission and named "west_corpus.csv").
+
+```{r Data Prep Function}
+# Data Prep Function (presented in class)
+data_prep <- function(x,y,z){
+  i <- as_tibble(t(x)) # pass in data as x
+  ii <- unite(i,"text",y:z,remove = TRUE,sep = "")
+}
+
+```
+
+```{r Read in articles, warning=FALSE, console=FALSE, message = FALSE}
+###  Read in articles and get them into bag-of-words format
+
+# Article 1
+article1_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Are you a Utahn who believes in climate change_ You_re.RTF"))[7:38,]
+
+article1_bag <- data_prep(article1_raw,'V1','V32')
+
+
+# Article 2
+article2_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Arizona moves to regulate greenhouse-gas tailpipe emiss.RTF"))[9:63,]
+                          
+article2_bag <- data_prep(article2_raw, 'V1', 'V55')
+
+
+# Article 3
+article3_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/BUSINESS_ Climate woes may show in your cup of joe_ Ris.RTF"))[10:51,]
+
+article3_bag <- data_prep(article3_raw, 'V1', 'V42')
+
+# Article 4
+article4_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Climate change already playing out in West_ report says.RTF"))[8:9,]
+
+article4_bag <- data_prep(article4_raw, 'V1', 'V2')
+
+# Article 5
+article5_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Clock is ticking to reduce threat of climate change to.RTF"))[11:24,]
+
+article5_bag <- data_prep(article5_raw, 'V1', 'V14')
+
+# Article 6
+article6_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Delegation says climate change is cause of wildfires.RTF"))[11:39,]
+
+article6_bag <- data_prep(article6_raw, 'V1', 'V29')
+
+# Article 7
+article7_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/From ruined bridges to dirty air_ EPA scientists price.RTF"))[9:43,]
+
+article7_bag <- data_prep(article7_raw, 'V1', 'V35')
+
+# Article 8
+article8_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Gordon works to save coal and address climate change.RTF"))[9:91, ]
+
+article8_bag <- data_prep(article8_raw, 'V1', 'V83')
+
+# Article 9
+article9_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Public interest group in AZ says state in top 10 for in.RTF"))[9:10,]
+
+article9_bag <- data_prep(article9_raw, 'V1', 'V2')
+
+# Article 10
+article10_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Say goodbye to fossil fuels.RTF"))[9:18,]
+
+article10_bag <- data_prep(article10_raw, 'V1', 'V10')
+
+# Article 11
+article11_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Smaller footprint a family affair.rtf"))[22:46,]
+
+article11_bag <- data_prep(article11_raw,'V1','V25')
+
+# Article 12
+article12_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Sonoma Clean Power adds electric vehicles to its fight.RTF"))[10:40,]
+
+article12_bag <- data_prep(article12_raw,'V1','V31')
+
+# Article 13
+article13_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/State lawmakers in race to control green house gases.RTF"))[12:47,]
+
+article13_bag <- data_prep(article13_raw,'V1','V36')
+
+# Article 14
+article14_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/Utahns sign compact committing to pollution_ climate ch.RTF"))[9:46,]
+
+article14_bag <- data_prep(article14_raw,'V1','V38')
+
+# Article 15
+article15_raw <- as_tibble(read_rtf("C:/Users/student/OneDrive/FourthYear_Fall2021/DS3001/Week8Lab_TextAnalysis/WestArticles/_Green_ jobs could grow the economy.RTF"))[c(9:10, 12:24, 26:32, 34:46, 48:56, 58:64, 66:76),]
+
+article15_bag <- data_prep(article15_raw,'V1','V62')
+```
+**Note: I have attached the west_corpus.csv file to my assignment, and there is code to simply load that csv.
+
+```{r Create West Corpus (and load from CSV), warning=FALSE, console=FALSE, message = FALSE}
+## Create corpus for Western United states from the bag of words representations
+
+# Make a vector of Articles from 1-15
+articles <- paste(rep('Article', 15), 1:15, sep = ' ')
+
+# Create tibble of all BOW representations 
+west_corpus <- tibble(articles,text=t(tibble(article1_bag,article2_bag, article3_bag, article4_bag, article5_bag, article6_bag, article7_bag, article8_bag, article9_bag, article10_bag, article11_bag, article12_bag, article13_bag, article14_bag, article15_bag, .name_repair = "universal")))
+
+# Convert to a df
+west_df <- as.data.frame(west_corpus)
+
+# Write the corpus df to a csv file
+write.csv(west_df, file = "west_corpus.csv")
+
+## CODE TO LOAD THE WEST CORPUS FROM ATTACHED FILE
+# west_corpus <- read.csv("west_corpus.csv")
+```
+
+# TF-IDF Analysis 
+
+After creating the BOW representation of the corpus, I performed the term frequency-inverse document frequency analysis (tf-idf). This analysis highlighted the more significant/less common words in each article and at the corpus level. 
+
+To perform this analysis, I first used the unnest_tokens function to get all of the words in the corpus and their raw counts. Then I grouped by the article number and calculated the total number of words in each article. I performed a left join with these two data frames so that I would have raw word counts and total counts in the same data frame. I then applied the bind_tf_idf() function to get the term frequency, inverse document frequency, and tf-idf values. 
+
+```{r TF-IDF Values, warning=FALSE, console=FALSE, message = FALSE}
+## Do tf-idf on the West corpus
+
+# Calculate the word count
+word_count <- west_corpus %>%
+  unnest_tokens(word, text) %>%
+  count(articles, word, sort = TRUE)
+
+# Calculate total words
+total_words <- word_count %>% 
+  group_by(articles) %>% 
+  summarize(total = sum(n))
+
+# Left joing the word count with total word count
+west_words <- left_join(word_count, total_words)
+
+# Use the bind_tf_idf function to get tf, idf, and tf-idf values for the corpus
+west_words <- west_words %>%
+  bind_tf_idf(word, articles, n)
+
+# Adjust factor levels for visualization 
+west_words$articles <- as.factor(west_words$articles)
+levels(west_words$articles) <- paste(rep('Article', 15), 1:15, sep = ' ')
+
+```
+
+## Visualizations of TF-IDF and Important Findings (Patterns)
+
+I chose to visualize the top words by TF-IDF for each individual article in the West Corpus. I used the slice_max() function to select the top words by their tf-idf value in each article. Then I applied facet_wrap() to get individual plots for each article. Interestingly, a few of the plots have more than 10 words (I think this is because some of the "max" tf-idf scores are tied so more are included in the plots). I also visualized the top 100 words for the whole corpus using tf-idf.
+
+These visualization approaches allowed me to quickly see some of the key topics within each article, but also identify common themes and patterns within the whole corpus. Significantly, it seems common that the state of interest (likely where the article was written) is a unique and important word in many of the articles. It is clear that each article has a unique, often state-centered focus on the climate crisis but that there are some important commonalities across the articles. 
+
+See the plots below and my analysis of common themes, patterns, and important takeaways that follows: 
+
+```{r TF-IDF by Article Visualization, fig.height=15, fig.width=12}
+
+# Using the highest tf-idf visualize the top unique words in each of the 15 articles
+west_words %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = tf_idf, n = 10) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~articles, ncol = 3, scales = "free") +
+  labs(x = "tf-idf", y = NULL, cex.lab = .4)
+```
+```{r Top 100 Words by TF-IDF, fig.height = 11, fig.width=10}
+## Top 100 visualization using tf-idf 
+west_words %>% 
+  slice_max(order_by = tf_idf, n = 100) %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  geom_col(show.legend = TRUE) +
+  labs(x = 'tf-idf', y = 'word', title = 'Top 100 Words in West Corpus by TF-IDF')
+```
+
+
+One strong theme that emerged from this tf-idf analysis is the apparent importance of **legislation and governance**. Words like "bill," "u.n.," "law," "committee," "agency," "commission," "standards," "delegates," and "epa" appear in different articles and are all tied to governmental rules/laws. This suggests that, at least in the west, there may be more support for laws that regulate climate change issues (such as emissions, vehicle standards, water pollution, etc.). I hypothesize that this broader support for regulations may stem, at least partly, from the fact that multiple Western states are fairly liberal. The states of California, Oregon, Washington, Nevada, Colorado, and New Mexico, in particular, tend to "go blue" (vote Democratic). There is also a lot of published evidence that suggests that Democrats are more concerned about climate change than Republicans.
+
+Another theme I observed is **economic concerns** over climate change. Words like "purchase," "income," "customers," "supply," "sectors," "costs," "productivity," and "consumers" appear as top terms across the corpus. There are many economic considerations related to climate change: building new infrastructure, damage from extreme weather events, the cost of transition to new energy sources, and many others, so these words appearing a lot makes sense. The tf-idf values of these articles clearly reflect that these considerations are of high importance in the west.
+
+Another interesting pattern that emerged was a focus on **woodlands and forests and the fires that can destroy them**. Based on the second bar plot, the word "forest" was of high importance in both articles 11 and 12. The related words, "timber" and "woodland," were also significant. The words "fires" and "fire" also had high tf-idf values. This emphasis on forest fires is very understandable as the west coast has numerous large state parks and woodlands that are susceptible to destruction by forest fires, which have been increasing with droughts (there have been numerous such fires reported on in recent years). 
+
+# Sentiment Analysis
+
+Following my TF-IDF analysis, I conducted a sentiment analysis of the west corpus to get an idea of the general attitude towards climate change. To do this, I first combined my different bag of words representations into one large BOW (i.e., I merged all article texts together). I exported this combined representation  to a csv file (named all_west_words.csv), which is attached to my assignment submission. I used the "data_prep" function from earlier.
+
+**Note: I include a line of code that enables you to load the "all_west_words.csv" file, which contains all of the text for the corpus in one unifed cell. I used this data for my sentiment analysis. 
+
+```{r Condense text to one cell}
+# get all the words into one cell using the bag-of-words corpus 
+west_text <- west_corpus[,2]
+all_west <- data_prep(west_text, 'V1', 'V15')
+
+# export to a csv
+all_west_words_df <- as.data.frame(all_west)
+
+# Write the corpus to a csv file
+write.csv(all_west_words_df, file = "all_west_words.csv")
+
+# CODE TO LOAD THE ALL_WEST_WORDS.CSV FILE
+# all_west_words2 <- read.csv("all_west_words.csv")
+```
+
+Now that all of the words from the articles are in one cell, I will perform sentiment analysis on the text using the three different sentiment lexicons (AFINN, NRC, and Bing) and visualize and compare the results. 
+
+```{r Tokenize, warning=FALSE, console=FALSE, message = FALSE}
+all_west_words <- all_west %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>% 
+  count(word, sort=TRUE)
+```
+```{r Sentiment by Lexicon, console = FALSE, message=FALSE, warning=FALSE}
+# Create different sentiment analyses using different lexicons
+
+west_sentiment_affin <- all_west_words %>%
+  inner_join(get_sentiments("afinn")) #using a inner join to match words and add the sentiment variable
+
+west_sentiment_nrc <- all_west_words %>%
+  inner_join(get_sentiments("nrc"))
+
+west_sentiment_bing <- all_west_words %>%
+  inner_join(get_sentiments("bing"))
+
+```
+## NRC Emotion Lexicon
+
+```{r NRC Analysis}
+# Initial sentiment examination using tables for 'nrc' lexicon 
+nrc_west <- as.data.frame(table(west_sentiment_nrc$sentiment))
+
+ggplot(nrc_west, aes(x = Var1, y = Freq)) + geom_bar(stat = "identity") + 
+  labs(x = 'Sentiment', y = 'Sentiment Frequency', title = 'Sentiment Frequency Distribution Using NRC Lexicon for West Corpus') +
+  geom_text(aes(label = Freq), nudge_y = 10)
+
+```
+
+Interestingly, based on the NRC lexicon there were a large number of words that connoted positive or trusting emotions (478 words) in the articles. However, words that connote unpleasant emotions of anger, disgust, fear, sadness, or general negativity (account for 563 words) were dominant over the more positive emotions. Based on this lexicon, it appears that there are generally unhappy and discouraging emotions associated with climate change issues, but that potentially the positive and trusting words are conveying hopeful visions for the future if we act on climate change now. NRC provides the broadest sentiment picture because it has 1280 shared words with the West corpus, and covers a fairly broad spectrum of emotions. 
+
+```{r fig.height=15, fig.width=10}
+west_sentiment_nrc %>% 
+  group_by(sentiment) %>% 
+  slice_max(order_by = n, n = 15) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, ncol = 3, scales = "free") +
+  labs(x = "n", y = NULL, cex.lab = .4)
+```
+
+After looking at the higher level sentiments, I wanted to see which individual words were being classified into each of the eight different emotions to see if there were any patterns present. The x-axis is the frequency of the words within the corpus, and the y-axis is the words. They are faceted by emotion. 
+
+Some words are repeated across graphs because they have different emotions associated with them. Words such as "pollution" and "waste" appear a good amount and are classified as being both disgusted and negative in emotion. Contrastingly, more hopeful words such as "clean" and "electric" are seen as positive, joyful, and trusting. In the fear emotion category, the word "change" was completely dominant. 
+
+Overall, this visualization provides a deeper view of how the words were classified in the corpus and allows us to see some interesting patterns. 
+
+## Bing Lexicon
+
+I next created a simple table of the results from the Bing lexicon: 
+```{r Bing Analysis}
+# Look at the bing sentiments for the west corpus; seems that the general sentiment of the articles in the corpus leans negative 
+table(west_sentiment_bing$sentiment)
+```
+The Bing lexicon, similarly to NRC, suggests a fairly strong negative sentiment imbalance. However, there are many fewer words from this lexicon in the articles (387 shared words), so it provides a more limited understanding than NRC. 
+
+## AFFIN Lexicon  
+
+For the AFFIN lexicon, because sentiments are on a scale from -5 to 5, I plotted them using a histogram to understand the distribution. 
+
+```{r AFFIN Analysis, console = FALSE, warning=FALSE, message = FALSE}
+## Visualize the affin lexicon sentiments 
+ggplot(data = west_sentiment_affin, 
+       aes(x=value)
+        )+
+  geom_histogram()+
+  ggtitle("West Corpus Sentiment Range")+
+  theme_minimal()
+```
+
+Similarly to the NRC and Bing lexicons, the AFFIN lexicon appears to lean towards a negative sentiment. There appear to be more words with negative number sentiments, and the positive words are not that strongly positive (primarily 1 or 2). It is important to note that there were only 317 shared terms between the west corpus and the AFFIN lexicon, so this provides a more limited perspective than the NRC lexicon. 
+
+# Word Cloud
+
+The last step I took in my preliminary text analysis was to create a word cloud of the top 50 words (by count) in the west corpus text. This enabled me to see the most common words relative to one another and get an overall sense of the focus of the text. 
+
+```{r Create word cloud}
+## Construct a word cloud of the top 100 words (by frequency from performing tokenization)
+
+set.seed(42)
+ggplot(all_west_words[1:50,], aes(label = word, size = n)
+       ) +
+  geom_text_wordcloud() +
+  theme_minimal() + 
+  scale_size_area(max_size = 20)
+
+```
+
+Not surprisingly, the words I chose to track (listed in the first section) commonly appear in the article texts. Words that I didn't choose to track but that seem to appear fairly commonly are "power," "environmental," and "technology." The high frequencies of these words are logical as states are shifting to alternative energy or power sources in the face of climate change, environmental issues are becoming increasingly important, and combating climate change will take numerous innovations in technology to accomplish. This word cloud gives a good overall sense of the terms that are used a lot around the topic of climate change. 
+
+# Overview of Results and Implications/Next Steps 
+
+## High-Level Overview of Results
+Based on my two analyses (tf-idf and sentiment), I uncovered some interesting results. The tf-idf analysis highlighted three key themes in the west corpus: 
+
+  1. Importance of legislation and governance on climate issues
+  2. There are many economic concerns surrounding climate change
+  3. In the west there is particular emphasis on forests and forest fires
+  
+With regard to the sentiment analysis, across all three lexicons there was a fairly strong negative sentiment associated with the corpus text. The NRC lexicon provided some deeper insights into the emotions present, and there was a defined bent towards unpleasant emotions -- anger, fear, sadness, and general negativity. Highly negative words were those such as "waste," "pollution," and "change." However, there was a good portion of the text that did connote positive emotions. These positive emotions were evoked by words such as "clean," "technology," and "electric." 
+
+## Implications and Recommended Next Steps
+
+**This preliminary analysis highlighted several high-level patterns and sentiment themes. The implications of these analyses are four-fold:**
+
+  1. The west has its own unique interests and concerns with regard to climate change. There is a particular emphasis on the  preservation and protection of natural resources such as forests, which are highly susceptible to forest fires. 
+  
+  2. The west, being more liberal-leaning, appears to value governance and laws that regulate climate issues. The more liberal western states might be able to pass more legislation to address these issues than other states. 
+  
+  3. Climate change is not just an existential threat or societal issue, it is also an economic one. People in the west may have more favorable attitudes towards investing in technologies and practices that mitigate climate change. More information is needed to fully understand this finding (such as polling, deeper contextual analysis, more analysis on economically-focused articles in this area). 
+  
+  4. There is a lot of anxiety, fear, and anger surrounding climate change. This finding suggests that it may be difficult for people with competing interests to come together and agree on solutions. This finding is not unique to the west, but definitely presents a challenge for policy makers and ordinary citizens when trying to implement positive changes. 
+  
+  
+**There are several next steps that I would recommend to gain a better understanding of the climate change trends:** 
+
+  1. Perform separate text analyses on liberal and conservative publications and see whether there are sentiment and word frequency differences depending on political leaning. 
+  
+  2. Narrow the time frame range, or potentially perform analyses within smaller ranges and compare across them. This might allow clearer delineation of sentiment changes over time. 
+  
+  3. Create a larger corpus to encompass more publications and extend the applicability of results. 
+  
+  4. Consult subject matter experts to gain greater insight on the terms that should be tracked, and expand the filtering in the NexusUni database to search for these additional terms. 
+  
