@@ -1,0 +1,102 @@
+---
+title: "Group Findings"
+author: "Madeleine Ashby"
+date: "10/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load all necessary packages
+library(tidyverse)
+library(tidytext)
+library(ggwordcloud)
+library(gutenbergr)
+library(textdata)
+library(textreadr)
+
+# Data Prep Function (from lecture)
+data_prep <- function(x,y,z){
+  i <- as_tibble(t(x)) # pass in data as x
+  ii <- unite(i,"text",y:z, remove = TRUE, sep = "")
+}
+```
+
+```{r}
+# Read in data
+south_corpus <- read.csv("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/south_corpus.csv")[,2:3]
+
+south_one_cell <- as.data.frame(read.csv("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/south_all_words.csv")[, 2])
+names(south_one_cell)[1] <- "text"
+
+```
+
+```{r}
+#Sentiment Analysis
+south_all_words <- south_one_cell %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort=TRUE)
+
+south_sentiment_affin <- south_all_words %>%
+  inner_join(get_sentiments("afinn"))
+south_sentiment_bing <- south_all_words %>%
+  inner_join(get_sentiments("bing"))
+south_sentiment_nrc <- south_all_words %>% 
+  inner_join(get_sentiments("nrc"))
+
+ggplot(data = south_sentiment_affin,
+       aes(x=value)
+        )+
+  geom_histogram()+
+  ggtitle("South Corpus Sentiment Range")+
+  theme_light()
+
+table(south_sentiment_bing$sentiment)
+
+table(south_sentiment_nrc$sentiment)
+
+```
+
+```{r}
+#TF-IDF Analysis
+
+word_count <- south_corpus %>%
+  unnest_tokens(word, text) %>%
+  count(Article, word, sort = TRUE)
+
+total_words <- word_count %>%
+  group_by(Article) %>%
+  count(Article, word, sort = TRUE)
+
+south_words <- left_join(word_count, total_words)
+
+south_words <- south_words %>%
+  bind_tf_idf(word, Article, n)
+
+south_words$Article <- as.factor(south_words$Article)
+levels(south_words$Article) <- paste(rep('Article', 15), 1:15, sep=' ')
+
+south_words %>%
+  group_by(Article) %>%
+  slice_max(order_by = tf_idf, n=3) %>% #select top 3 words
+  ungroup() %>%
+  ggplot(aes(x=tf_idf, fct_reorder(word, tf_idf), fill=Article)) + 
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~Article, ncol=5, scales="free") + #plots for each article
+  labs(x="tf-idf", y=NULL, cex.lab=0.4)
+```
+
+```{r}
+#Word Cloud
+
+set.seed(42)
+ggplot(south_all_words[1:50,], aes(label = word, size = n)
+       ) +
+  geom_text_wordcloud() +
+  theme_light()
+```
+
