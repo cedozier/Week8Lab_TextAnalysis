@@ -1,0 +1,271 @@
+---
+title: "Text Analysis: Southern United States"
+author: "Madeleine Ashby"
+date: "10/13/2021"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    theme: journal
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Load all necessary packages
+library(tidyverse)
+library(tidytext)
+library(ggwordcloud)
+library(gutenbergr)
+library(textdata)
+library(textreadr)
+```
+
+I will be examining regional climate change support through a preliminary text analysis of 15 newspaper articles from publications from the following states (considered to be the South for the purpose of this assignment):
+* Alabama
+* Arkansas
+* Florida
+* Georgia
+* Kentucky
+* Louisiana
+* Maryland
+* Mississippi
+* North Carolina
+* Oklahoma
+* South Carolina
+* Tennessee
+* Texas
+* Virginia
+* West Virginia
+
+To select the articles that will form the South Corpus, I filtered my NexisUni search such that the time frame was Jan 1, 2000 - present, and I searched the database using the following terms/phrases:
+* climate change
+* rising sea level
+* global warming
+* renewable energy
+* pollution
+
+The resulting articles from these searches were then selected at random (except I did try to vary which states the articles were coming from in order to eliminate bias).
+
+## Corpus Creation
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Data Prep Function (from lecture)
+data_prep <- function(x,y,z){
+  i <- as_tibble(t(x)) # pass in data as x
+  ii <- unite(i,"text",y:z, remove = TRUE, sep = "")
+}
+```
+
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Read in Articles
+
+# Article 1
+a1_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Alabama Power proposes increase in renewable energy to.RTF"))[19:37,]
+a1_bag <- data_prep(a1_raw, 'V1', 'V19' )
+
+
+# Article 2
+a2_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Annette Taddeo launches campaign to be Florida_s first.RTF"))[20:62,]
+a2_bag <- data_prep(a2_raw, 'V1', 'V43')
+
+# Article 3
+a3_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Biden faces busy_ critical agenda for next 2 weeks.RTF"))[18:43,]
+a3_bag <- data_prep(a3_raw, 'V1', 'V26')
+
+# Article 4
+a4_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/County_ state get poor grades for air pollution.RTF"))[18:54,]
+a4_bag <- data_prep(a4_raw, 'V1', 'V37')
+
+# Article 5
+a5_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Drought lowering Edisto River levels_ officials say sit.RTF"))[19:54,]
+a5_bag <- data_prep(a5_raw, 'V1', 'V36')
+
+# Article 6
+a6_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/GLOBAL WARMING_ The state we may be in_How scientists c.RTF"))[19:137, ]
+a6_bag <- data_prep(a6_raw, 'V1', 'V119')
+
+# Article 7
+a7_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Oklahoma rising_ Global warming_ weather or not.RTF"))[19:43,]
+a7_bag <- data_prep(a7_raw, 'V1', 'V25')
+
+# Article 8
+a8_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/OMU set to present solar team findings.RTF"))[19:32,]
+a8_bag <- data_prep(a8_raw, 'V1', 'V14')
+
+# Article 9
+a9_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Political Insider_ Barr on _Colbert__ So close to a dis.RTF"))[21:39,]
+a9_bag <- data_prep(a9_raw, 'V1', 'V19')
+
+# Article 10
+a10_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/REPORT REVEALS POLLUTION IS LOCAL.RTF"))[17:19,]
+a10_bag <- data_prep(a10_raw, 'V1', 'V3')
+
+# Article 11
+a11_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Rising sea levels fuel damage.RTF"))[19:37,]
+a11_bag <- data_prep(a11_raw, 'V1', 'V19')
+
+# Article 12
+a12_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Rising sea levels pose significant risk to owners of le.RTF"))[18:25,]
+a12_bag <- data_prep(a12_raw, 'V1', 'V8')
+
+# Article 13
+a13_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Satellites show warming accelerating sea level rise.RTF"))[18:35,]
+a13_bag <- data_prep(a13_raw, 'V1', 'V18')
+
+# Article 14
+a14_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/Something in the Air_ Report_ Particulates an issue in.RTF"))[19:31,]
+a14_bag <- data_prep(a14_raw, 'V1', 'V13')
+
+# Article 15
+a15_raw <- as_tibble(read_rtf("C:/Users/Maddie/OneDrive/Desktop/3YEAR/Week8Lab_TextAnalysis/SouthData/YOUR VIEWS_ GLOBAL WARMING_EDUCATION _ Al Gore_s global.RTF"))[18:44,]
+a15_bag <- data_prep(a15_raw, 'V1', 'V27')
+
+```
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Create corpus variable
+
+article_label <- paste(rep('Article', 15), 1:15, sep = ' ')
+
+south_corpus <- tibble(Article=article_label, text = t(tibble(a1_bag, a2_bag, a3_bag, a4_bag, a5_bag, a6_bag, a7_bag, a8_bag, a9_bag, a10_bag, a11_bag, a12_bag, a13_bag, a14_bag, a15_bag, .name_repair = "universal")))
+
+```
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+#Save as csv file for future reference!
+south <- as.data.frame(south_corpus)
+write.csv(south, file="south_corpus.csv")
+```
+
+## Sentiment Analysis
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Prepare for analysis by combining all words into one single cell.
+south_text <- south_corpus[,2]
+south_all <- data_prep(south_text, 'V1', 'V15')
+
+#write to csv for future reference
+south_all_words_df <- as.data.frame(south_all)
+write.csv(south_all_words_df, file = "south_all_words.csv")
+```
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Tokenize to find freqency excluding stop words
+south_all_words <- south_all %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort=TRUE)
+```
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+south_sentiment_afinn <- south_all_words %>%
+  inner_join(get_sentiments("afinn"))
+south_sentiment_bing <- south_all_words %>%
+  inner_join(get_sentiments("bing"))
+south_sentiment_nrc <- south_all_words %>% 
+  inner_join(get_sentiments("nrc"))
+
+```
+
+### Afinn Analysis
+Afinn rates words on a scale of -5 to 5.  To examine the distribution, a histogram would be best for visualization.
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+ggplot(data = south_sentiment_afinn,
+       aes(x=value)
+        )+
+  geom_histogram()+
+  ggtitle("South Corpus Sentiment Range")+
+  theme_light()
+```
+
+Based on this histogram, the sentiment distribution appears to be slightly more negative than positive, which suggests a negative average sentiment.  However, this is not the best possible analysis as there were only 225 words shared between Afinn and the 5678 words in the corpus.
+
+### Bing Analysis
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+table(south_sentiment_bing$sentiment)
+```
+Bing analysis provided a little bit more insight as there were 279 words shared between the two sets.  Once again, the sentiment leans towards negative, although this time it is definitely more significant.
+
+### NRC Analysis
+```{r, warning=FALSE, message = FALSE}
+table(south_sentiment_nrc$sentiment)
+```
+NRC analysis yielded similar results.  There were 1028 words in common between the two sets, and 521 of them expressed negative emotions of anger, anticipation, disgust, fear, and sadness.  The remaining 507 words expressed positive emotions or joy, surprise, and trust.  That being said, although these results give us a much better visual understanding of the data, the ratio of negative to positive sentiment is still quite close to being 1:1 and does not allow us to draw many concrete conclusions about the general sentiment of the Southern region regarding climate change.  However, based on the three lexicons above, it is clear that there is a general slightly-negative sentiment toward climate change in the Southern region.
+
+To verify this, we can perform TF-IDF analysis to see if any more insight is provided.
+
+## TF-IDF Analysis
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+word_count <- south_corpus %>%
+  unnest_tokens(word, text) %>%
+  count(Article, word, sort = TRUE)
+
+total_words <- word_count %>%
+  group_by(Article) %>%
+  count(Article, word, sort = TRUE)
+
+south_words <- left_join(word_count, total_words)
+
+south_words <- south_words %>%
+  bind_tf_idf(word, Article, n)
+```
+
+### Visualization
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Adjust dataset for visualization purposes
+
+south_words$Article <- as.factor(south_words$Article)
+#define levels to maintain order from 1-15
+levels(south_words$Article) <- paste(rep('Article', 15), 1:15, sep=' ')
+```
+
+I decided to display the top 3 words (by tf-idf) for each article in the South corpus.
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# Plot to show top 3 words for each article in the corpus based on tf_idf
+south_words %>%
+  group_by(Article) %>%
+  slice_max(order_by = tf_idf, n=3) %>% #select top 3 words
+  ungroup() %>%
+  ggplot(aes(x=tf_idf, fct_reorder(word, tf_idf), fill=Article)) + 
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~Article, ncol=5, scales="free") + #plots for each article
+  labs(x="tf-idf", y=NULL, cex.lab=0.4)
+```
+
+I quickly noticed the strong presence of words pertaining to air pollution.  Words such as "air", "quality", "lung", "cigar", and "pollution" were quite frequently found in the articles.  This suggests that inhabitants of the South are most concerned with air pollution in relation to climate change.
+
+Another trend I found during tf-idf analysis was a general recognition of global warming; words like "melting", "sheets", sea", "river", "drought", and "flooding" also had high tf-idf values.
+
+I did not, however, see any words that suggested any desire for legal action in the South. Additionally, based on my previous sentiment analysis, it is fair to assume that mentions of regulations regarding climate change would not be in favor of regulation.
+
+## Word Cloud
+
+I also created a word cloud for a simple visualization of the words found in the corpus and their frequency.
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+set.seed(42)
+ggplot(south_all_words[1:50,], aes(label = word, size = n)
+       ) +
+  geom_text_wordcloud() +
+  theme_light()
+```
+
+Obviously the search terms I used are bound to be larger words in this display, but other more frequently used words in the corpus were "model", "democrats", "solar", "power", and "homes".  The high frequency of these terms shows the slow shift of states (especially those that tend to be democratic) towards alternative energy and power sources.
+
+## Overview of Results & Implications
+Based on my preliminary text analysis of the South corpus, I have tentatively concluded a few things in hopes of further exploring this topic in the future to tune these conclusions.
+From my sentiment analysis I was able to conclude with confidence that there is a slightly negative attitude associated with climate change in the South.  This was hinted at by the Afinn lexicon and solidified by the NRC lexicon.  This yielded the implication that there is a significant amount of anxiety, fear, anger, and general negative emotion surrounding the topic of climate change.
+
+From my tf-idf analysis, I drew the conclusion that water and air pollution are popular topics of conversation in the South.  However, combining these findings with my findings in the sentiment analysis implies that there may not be a huge amount of concern for these issues given that the negative sentiment associated with climate change suggests a general indifference towards the topic. That being said, there were not many frequently occurring words pertaining to steps towards legislation and regulation.  Another implication would thus be that the South does not appear to value laws governing climate change, and this is illustrated by the fact that most Southern states are Republican and more conservative.
+
+## Next Steps
+A few of the steps I would take next to obtain a better understanding of the general sentiment of the United States towards climate change would be:
+
+1. Change the way the United States was divided for this project.  The South is typically a more conservative region and thus is not sufficient to represent the United States as a whole.
+
+2. Use a greater number of articles when creating the corpus.
+
+3. Use articles from a more recent time frame (perhaps from the last 5 years instead of the last 20) in order to make sure that observations made are up-to-date and do not reflect past trends.
+
+4. Isolate action / feeling words to get a better understanding of the sentiment as some words may have negative ratings associated with them but aren't inherently negative in the article.
