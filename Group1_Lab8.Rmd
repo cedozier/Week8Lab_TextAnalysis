@@ -1,0 +1,407 @@
+---
+title: "Lab 8 Combined Analysis - Group 1"
+author: "Claire Dozier (ced9mq), Kylie Wise (ktw5nb), Emma Murphy (emm6ux), Maddie Ashby (mra4t)"
+date: "10/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load libraries, warning=FALSE, console=FALSE, message = FALSE}
+## Load libraries
+library(tidyverse)
+library(tidytext)
+library(ggwordcloud)
+library(textdata)
+# install.packages('textreadr') - to read rtf files
+library(textreadr)
+# install.packages("stopwords") 
+# install.packages("tm") 
+library(tm)
+library(stopwords)
+```
+
+# North Region Analysis
+
+## Top 10 Words for Each Article - North
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+# read in file 
+northeast_corpus <- read.csv("NE_corpus.csv")
+
+
+# Calculate the word count
+word_count_ne <- northeast_corpus %>%
+  unnest_tokens(word, combined) %>%
+  count(articles, word, sort = TRUE)
+
+# remove stop words 
+word_count_ne$word <-  removeWords(word_count_ne$word, stopwords("english"))
+word_count_ne$word <- stripWhitespace(word_count_ne$word)
+word_count_ne <- word_count_ne[-which(word_count_ne$word == ""), ]
+
+# look at which words appear most frequently in each article 
+word_count_ne %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = n, n = 5) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = n, reorder(word, n), fill = articles)) +
+  facet_wrap(~articles, scales = "free") +
+  geom_col(show.legend = TRUE) +
+  labs(x = "count", y = NULL,title = "Top 10 Words for Each Article", cex.lab = .4)
+
+```
+
+## TF-IDF - North
+
+```{r}
+# Calculate total words
+total_ne <- word_count_ne %>% 
+  group_by(articles) %>% 
+  summarize(total = sum(n))
+
+# Left joing the word count with total word count
+ne_words <- left_join(word_count_ne, total_ne)
+
+# Use the bind_tf_idf function to get tf, idf, and tf-idf values for the corpus
+ne_words <- ne_words %>%
+  bind_tf_idf(word, articles, n)
+
+# Adjust factor levels for visualization 
+ne_words$articles <- as.factor(ne_words$articles)
+levels(ne_words$articles) <- paste(rep('Article', 12), 1:12, sep = ' ')
+
+# Using the highest tf-idf visualize the top 1 unique word in each of the 12 articles
+ne_words %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = tf_idf, n = 1) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  geom_col() +
+  labs(x = "tf-idf", y = NULL,title = "Top 10 Words in Northeast by TF-IDF", cex.lab = .4)
+```
+
+```{r}
+# Using the highest tf-idf visualize the top 5 unique word in each of the 12 articles with facet wrap
+ne_words %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = tf_idf, n = 5) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  facet_wrap(~articles, scales = "free") + 
+  geom_col(show.legend = FALSE) +
+  labs(x = "tf-idf", y = NULL,title = "Top 10 Words in Northeast by TF-IDF", cex.lab = .4)
+```
+
+## AFINN Sentiment Analysis - North
+
+```{r, message = FALSE, warning = FALSE}
+all_ne_words <- read.csv("all_northeast_words.csv")
+
+# unnest, take out stopwords and take a count
+all_ne_words <- all_ne_words %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>% 
+  count(word, sort=TRUE)
+
+ne_sentiment_affin <- all_ne_words %>%
+  inner_join(get_sentiments("afinn")) #using a inner join to match words and add the sentiment variable
+
+# changing colors so negative and positive are different colors
+fill <- ne_sentiment_affin  %>% mutate(fill = ifelse(ne_sentiment_affin$value >=1, "green",ifelse(ne_sentiment_affin$value <= -1,"red","blue")))
+
+# making new variable a factor
+fill$fill <- as.factor(fill$fill)
+
+# plotting sentiment for northeast corpus
+ggplot(data = fill, aes(x=value, fill = fill)) +
+  geom_histogram(show.legend = FALSE) +
+  ggtitle("Northeast Corpus Sentiment Range") + stat_bin(bins = 10) + theme(legend.position = "none")
+
+```
+
+## Word Cloud - North
+
+```{r Create word cloud - north}
+## Construct a word cloud of the top 50 words (by frequency from performing tokenization)
+set.seed(2000)
+ggplot(all_ne_words[1:50,], aes(label = word, size = n)) +
+  geom_text_wordcloud() +
+  theme_minimal() + 
+  scale_size_area(max_size = 12)
+```
+
+
+# South Region Analysis 
+
+```{r}
+# Read in data
+south_corpus <- read.csv("south_corpus.csv")[,2:3]
+
+south_one_cell <- as.data.frame(read.csv("south_all_words.csv")[, 2])
+names(south_one_cell)[1] <- "text"
+
+```
+
+## Sentiment Analysis - South
+```{r}
+#Sentiment Analysis
+south_all_words <- south_one_cell %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort=TRUE)
+
+south_sentiment_affin <- south_all_words %>%
+  inner_join(get_sentiments("afinn"))
+south_sentiment_bing <- south_all_words %>%
+  inner_join(get_sentiments("bing"))
+south_sentiment_nrc <- south_all_words %>% 
+  inner_join(get_sentiments("nrc"))
+
+ggplot(data = south_sentiment_affin,
+       aes(x=value)
+        )+
+  geom_histogram()+
+  ggtitle("South Corpus Sentiment Range")+
+  theme_light()
+
+```
+```{r}
+table(south_sentiment_bing$sentiment)
+```
+```{r}
+table(south_sentiment_nrc$sentiment)
+```
+
+## TF-IDF - South
+```{r}
+#TF-IDF Analysis
+
+word_count_south <- south_corpus %>%
+  unnest_tokens(word, text) %>%
+  count(Article, word, sort = TRUE)
+
+total_words_south <- word_count_south %>%
+  group_by(Article) %>%
+  count(Article, word, sort = TRUE)
+
+south_words <- left_join(word_count_south, total_words_south )
+
+south_words <- south_words %>%
+  bind_tf_idf(word, Article, n)
+
+south_words$Article <- as.factor(south_words$Article)
+levels(south_words$Article) <- paste(rep('Article', 15), 1:15, sep=' ')
+```
+
+
+```{r fig.height = 8, fig.width=10}
+south_words %>%
+  group_by(Article) %>%
+  slice_max(order_by = tf_idf, n=3) %>% #select top 3 words
+  ungroup() %>%
+  ggplot(aes(x=tf_idf, fct_reorder(word, tf_idf), fill=Article)) + 
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~Article, ncol=5, scales="free") + #plots for each article
+  labs(x="tf-idf", y=NULL, cex.lab=0.4)
+```
+
+## Word Cloud - South
+```{r}
+#Word Cloud
+
+set.seed(42)
+ggplot(south_all_words[1:50,], aes(label = word, size = n)
+       ) +
+  geom_text_wordcloud() +
+  theme_light() +
+  scale_size_area(max_size = 12)
+```
+
+# Midwest Region Analysis
+
+```{r}
+climate_change_txt <- read_lines("Climate Change.txt")
+```
+
+## Top Words - Midwest
+```{r console = FALSE}
+climate_change_tibble <- tibble(text = climate_change_txt)
+
+climate_change <- climate_change_tibble %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>%
+  count(word, sort=TRUE)
+
+top_20_words <- head(arrange(climate_change, desc(n)), n = 20)
+
+top_20_words_plot <- ggplot(data = top_20_words, aes(x=word, y=n)) +
+  geom_bar(stat="identity") + ggtitle("Midwest Corpus: Top 20 Words") +
+  theme(axis.text.x = element_text(angle = 25))
+
+(top_20_words_plot)
+```
+
+## Sentiment Analysis - Midwest
+```{r}
+climate_change_afinn <- climate_change %>%
+  inner_join(get_sentiments("afinn"))#using a inner join to match words and add the sentiment variable
+
+ggplot(data = climate_change_afinn, 
+       aes(x=value)
+        )+
+  geom_histogram()+
+  ggtitle("Midwest Corpus: Afinn Sentiment Range")+
+  theme_minimal()
+```
+
+```{r}
+climate_change_nrc <- climate_change %>%
+  inner_join(get_sentiments("nrc"))
+
+nrc_climate_change <- as.data.frame(table(climate_change_nrc$sentiment))
+
+ggplot(nrc_climate_change, aes(x = Var1, y = Freq)) + geom_bar(stat = "identity") + 
+  labs(x = 'Sentiment', y = 'Sentiment Frequency', title = 'Midwest Corpus: NRC Sentiment Frequency Distribution') +
+  geom_text(aes(label = Freq), nudge_y = 10)
+```
+
+```{r}
+climate_change_bing <- climate_change %>%
+  inner_join(get_sentiments("bing"))
+
+table(climate_change_bing$sentiment)
+```
+
+
+# West Region Analysis
+
+```{r}
+## Load corpus data file
+west_corpus <- read.csv("west_corpus.csv")
+```
+
+## TF-IDF - West
+```{r}
+## Do tf-idf on the West corpus
+
+# Calculate the word count
+word_count_west <- west_corpus %>%
+  unnest_tokens(word, text) %>%
+  count(articles, word, sort = TRUE)
+
+# Calculate total words
+total_words_west <- word_count_west %>% 
+  group_by(articles) %>% 
+  summarize(total = sum(n))
+
+# Left joing the word count with total word count
+west_words <- left_join(word_count_west, total_words_west)
+
+# Use the bind_tf_idf function to get tf, idf, and tf-idf values for the corpus
+west_words <- west_words %>%
+  bind_tf_idf(word, articles, n)
+
+# Adjust factor levels for visualization 
+west_words$articles <- as.factor(west_words$articles)
+levels(west_words$articles) <- paste(rep('Article', 15), 1:15, sep = ' ')
+```
+
+```{r TF-IDF by Article Visualization, fig.height=15, fig.width=12}
+# Using the highest tf-idf visualize the top unique words in each of the 15 articles
+west_words %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = tf_idf, n = 10) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~articles, ncol = 3, scales = "free") +
+  labs(x = "tf-idf", y = NULL, cex.lab = .4)
+```
+
+```{r Top 100 Words by TF-IDF, fig.height = 11, fig.width=10}
+## Top 100 visualization using tf-idf 
+west_words %>% 
+  slice_max(order_by = tf_idf, n = 100) %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  geom_col(show.legend = TRUE) +
+  labs(x = 'tf-idf', y = 'word', title = 'Top 100 Words in West Corpus by TF-IDF')
+```
+
+## Sentiment Analysis - West
+
+```{r Condense Text and Tokenize, warning=FALSE, console=FALSE, message = FALSE}
+all_west_words <- read.csv("all_west_words.csv")
+
+all_west_words <- all_west_words %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>% 
+  count(word, sort=TRUE)
+```
+
+```{r Sentiment by Lexicon, console = FALSE, message=FALSE, warning=FALSE}
+# Create different sentiment analyses using different lexicons
+
+west_sentiment_affin <- all_west_words %>%
+  inner_join(get_sentiments("afinn")) #using a inner join to match words and add the sentiment variable
+
+west_sentiment_nrc <- all_west_words %>%
+  inner_join(get_sentiments("nrc"))
+
+west_sentiment_bing <- all_west_words %>%
+  inner_join(get_sentiments("bing"))
+
+```
+
+```{r NRC Analysis}
+# Initial sentiment examination using tables for 'nrc' lexicon 
+nrc_west <- as.data.frame(table(west_sentiment_nrc$sentiment))
+
+ggplot(nrc_west, aes(x = Var1, y = Freq)) + geom_bar(stat = "identity") + 
+  labs(x = 'Sentiment', y = 'Sentiment Frequency', title = 'Sentiment Frequency Distribution Using NRC Lexicon for West Corpus') +
+  geom_text(aes(label = Freq), nudge_y = 10)
+
+```
+
+```{r Bing Analysis}
+# Look at the bing sentiments for the west corpus; seems that the general sentiment of the articles in the corpus leans negative 
+table(west_sentiment_bing$sentiment)
+```
+
+```{r AFFIN Analysis, console = FALSE, warning=FALSE, message = FALSE}
+## Visualize the affin lexicon sentiments 
+ggplot(data = west_sentiment_affin, 
+       aes(x=value)
+        )+
+  geom_histogram()+
+  ggtitle("West Corpus Sentiment Range")+
+  theme_minimal()
+```
+## Word Cloud - West
+```{r Create word cloud}
+## Construct a word cloud of the top 100 words (by frequency from performing tokenization)
+
+set.seed(42)
+ggplot(all_west_words[1:50,], aes(label = word, size = n)
+       ) +
+  geom_text_wordcloud() +
+  theme_minimal() + 
+  scale_size_area(max_size = 20)
+
+```
+# Takeaways and Recommended Next Steps
+
+Some of the key takeaways we identified were: 
+
+  1. Fairly strong negative skew in sentiment. The South had a slightly more balanced perspective, but this may be due to the way in which we divided the states (likely due to greater political balance). However, this negative skew is to be expected because the topic is inherently negative. 
+  2. We saw clear regional patterns in the texts, with each region having its own specific climate concerns. In the west, for example, there was a strong emphasis on forest fires. 
+  3. Because the NRC lexicon is more detailed (provides values for a range of emotions, not just a binary), it gives seems to give a more complete picture of sentiment. Based exclusively on the "positive" and "negative" emotions in NRC, it would appear that sentiment are more positive, which contradicts findings from Bing and AFINN. However, when more emotions are grouped together (such as fear, anger, and disgust) and classified as negative, the overall trend of stronger negative sentiment still holds. 
+  4. In the northeast there was a significant focus on science and carbon emissions. This focus seems logical as the northeast has multiple areas that produce large amount of carbon emissions. 
+  
+Next step recommendations:
+
+  1. Isolate action words - this would help isolate support vs. facts (negative facts can skew perceptions around actions)
+  2. It may be helpful to focus on climate change topic subgroups. This could lend deeper context to the texts. 
+  3. Separate analyses based on liberal and conservative publications - compare the sentiments and topic emphasis to identify differences. 
+
