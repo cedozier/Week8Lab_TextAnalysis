@@ -1,0 +1,314 @@
+---
+title: "Northeast Newspaper Text Analysis"
+author: "Kylie Wise (ktw5nb)"
+date: "10/20/2021"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Northeast
+
+## Background: 
+Below we will look at climate change through the lens of text analysis for the 5 regions of the United States. In this rmarkdown we will focus on the "northeast". States included in the northeast are included below. 
+
+  1. Connecticut
+  2. Delaware
+  3. Massachusetts
+  4. Maryland
+  5. New Hampshire
+  6. New Jersey
+  7. New York
+  8. Pennsylvania
+  9. Rhode Island
+  10. Vermont
+  11. Pennsylvania
+  
+  
+We filtered time-frame search in NexisUni to articles after January 1, 2000, to present (October 2021). Below are the terms we chose to focus on. 
+
+  1.Climate change
+  2. Electric
+  3. Energy
+  4. Renewable 
+  5. Solar 
+  6. Wind
+  7. Oil 
+  8. Fossil fuels
+  9. Coal
+  10. Carbon
+  11. Emissions
+  12. Greenhouse gas
+  13. Global warming
+  14. Temperature
+  15. Sea levels
+  16. Methane
+  17. Footprint
+  18. Cars
+  19. Pollution
+
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+## Load libraries
+library(tidyverse)
+library(tidytext)
+library(ggwordcloud)
+library(textdata)
+# install.packages('textreadr') 
+# install.packages("stopwords") 
+# install.packages("tm") 
+library(tm)
+library(stopwords)
+library(textreadr)
+```
+
+# Corpus Creation
+
+Below you will see my creation of the Northeast Corpus. We collected 14 articles from Nexis Uni. These come from a wide array of different newspaper publishers and geographical areas including the New York Times, the New Yorker, Wall Street Journal, Pittsburgh Post-Gazette, the Patriot Ledger, The Capital, Pittsburgh Tribune Review, and more.  In these steps I read in the rtf's, converted them to tibbles, then made selections so that it only includes the body of the article. Finally, I ran it through the data prep function we got in class which turns it into a bag of words. 
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+
+# Data Prep Function
+data_prep <- function(x,y,z){
+  i <- as_tibble(t(x)) # pass in data as x
+  ii <- unite(i,"text",y:z,remove = TRUE,sep = "")
+}
+
+###  Read in articles and get them into bag-of-words format
+
+# 1st article
+article1_raw <- as_tibble(read_rtf("A GLOBAL PERSPECTIVE. WARMING UP TO COMPANIES TRYING TO.RTF"))[19:47,]
+article1_bag <- data_prep(article1_raw,'V1','V29')
+
+
+# 2nd article
+article2_raw <- as_tibble(read_rtf("Accounting for the Expanding Carbon Shadow from Coal-Bu.RTF"))[20:168,]
+article2_bag <- data_prep(article2_raw, 'V1', 'V149')
+
+
+# 3rd article
+article3_raw <- as_tibble(read_rtf("As Earth Warms_ The Hottest Issue Is Energy.RTF"))[19:71,]
+article3_bag <- data_prep(article3_raw, 'V1', 'V53')
+
+
+# 4th article
+article4_raw <- as_tibble(read_rtf("ENVISIONING THE POSSIBLE FUTURE OF CLIMATE CHANGE_ RECE.RTF"))[19:70,]
+article4_bag <- data_prep(article4_raw, 'V1', 'V52')
+
+
+# 5th article
+article5_raw <- as_tibble(read_rtf("Branson_s Luck_ The business world_s high roller is bet.RTF"))[19:73,]
+article5_bag <- data_prep(article5_raw, 'V1', 'V55')
+
+
+# 6th article
+article6_raw <- as_tibble(read_rtf("Global warming a threat to shores.RTF"))[19:74,]
+article6_bag <- data_prep(article6_raw, 'V1', 'V56')
+
+
+
+# 7th article
+article7_raw <- as_tibble(read_rtf("Losing Earth_ The Decade We Almost Stopped Climate Chan.RTF"))[20:412,]
+article7_bag <- data_prep(article7_raw, 'V1', 'V393')
+
+
+# 8th article
+article8_raw <- as_tibble(read_rtf("More Heat_ Less Light_ Good-bye_ polar bears. Hello_ oi.RTF"))[17:53,]
+article8_bag <- data_prep(article8_raw, 'V1', 'V37')
+
+
+# 9th article
+article9_raw <- as_tibble(read_rtf("THE CLIMATE OF MAN-III_What can be done_.RTF"))[18:82,]
+article9_bag <- data_prep(article9_raw, 'V1', 'V65')
+
+
+# 10th article
+article10_raw <- as_tibble(read_rtf("The Science of Climate Change Explained_ Facts_ Evidenc.RTF"))[19:136,]
+article10_bag <- data_prep(article10_raw,'V1','V118')
+
+
+# 11th article
+article11_raw <- as_tibble(read_rtf("the Sunniest Climate-Change Story You_ve Ever Read_ Thi.RTF"))[18:61,]
+article11_bag <- data_prep(article11_raw,'V1','V44')
+
+
+
+# 12th article
+article12_raw <- as_tibble(read_rtf("What_s Better_ What_s Worse.RTF"))[18:150,]
+article12_bag <- data_prep(article12_raw,'V1','V133')
+
+
+```
+
+
+Now that I have all of my articles in and loaded I want to put all of my bag of words into a data frame where there are two columns. The first is the article title (or a proxy for the article title (1,2,3,4,5, etc. for simplicity)). The second column is the bag of words that corresponds to that article. I then convert this into a dataframe so I can write it as a csv. This is helpful so that if someone wants to pick up my work where I left off it is easy to pull in the data in an easy format. 
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+
+## Create corpus from the bag of words representations
+
+# first column
+articles <- paste(rep('Article', 12), 1:12, sep = ' ')
+
+# combine all bow's
+combined <- t(tibble(article1_bag,article2_bag, article3_bag, article4_bag, article5_bag, article6_bag, article7_bag, article8_bag, article9_bag, article10_bag, article11_bag, article12_bag, .name_repair = "universal"))
+
+# Create tibble of all BOW representations 
+northeast_corpus <- tibble(articles,combined)
+
+
+# Convert to a df
+NE_df <- as.data.frame(northeast_corpus)
+
+
+# Write the corpus df to a csv file
+write.csv(NE_df, file = "NE_corpus.csv")
+
+```
+
+# Word Count
+
+I first wanted to look at word count. I did this by unnesting the words from the text and doing a count of the number of times that word appeared. I then removed stop words to exclude words such as the, a, it, etc. This is unnecessary for TF-IDF Analysis as that will not show these words because they lack uniqueness. However, I still wanted to remove these stop words so I could look at raw number of words and which words appeared most frequently. I then plotted this for each article to look at the top 5 most commonly mentioned words of each article. 
+
+```{r, warning=FALSE, console=FALSE, message = FALSE}
+
+# Calculate the word count
+word_count <- northeast_corpus %>%
+  unnest_tokens(word, combined) %>%
+  count(articles, word, sort = TRUE)
+
+# remove stop words 
+word_count$word <-  removeWords(word_count$word, stopwords("english"))
+word_count$word <- stripWhitespace(word_count$word)
+word_count <- word_count[-which(word_count$word == ""), ]
+
+# look at which words appear most frequently in each article 
+word_count %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = n, n = 5) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = n, reorder(word, n), fill = articles)) +
+  facet_wrap(~articles, scales = "free") +
+  geom_col(show.legend = TRUE) +
+  labs(x = "count", y = NULL,title = "Top 10 Words for Each Article", cex.lab = .4)
+
+```
+
+We can see that although each article is about something slightly different regarding climate change, we see some common terms appearing in most articles. These common terms include, carbon, people, energy, emissions. This plot seems to show us that right now in the Northeast, many people are focused on emissions, energy, and carbon and how people play a role in climate change. It is interesting that there are not a lot of mentions of agriculture, farming, or other natural disasters. As these may not impact Northeasterner's as much as other parts of the countries.  However, cities are commonplace in the Northeast. Many of these cities run on carbon by burning fuels like oil and natural gas. Things like cement and deforestation also lead to an increase in carbon emission. All of these are characteristic of the Northeast. Thus, it makes sense that these words are top of mind for Northeasterners. Perhaps most of the discourse surrounding climate change in the northeast surrounds cities and ways in which we can decrease carbon emissions and transition to more clean energy sources to slow climate change. 
+
+
+
+
+## Visualizations of TF-IDF and Important Findings (Patterns)
+
+Then implemented term frequency-inverse document frequency. To do so I used the bind_tf_idf function on the northeastern words data frame. I then wanted to visualize the top word for each of the 12 articles in the graphic below. 
+
+```{r}
+
+# Calculate total words
+total <- word_count %>% 
+  group_by(articles) %>% 
+  summarize(total = sum(n))
+
+# Left joing the word count with total word count
+ne_words <- left_join(word_count, total)
+
+# Use the bind_tf_idf function to get tf, idf, and tf-idf values for the corpus
+ne_words <- ne_words %>%
+  bind_tf_idf(word, articles, n)
+
+
+# Adjust factor levels for visualization 
+ne_words$articles <- as.factor(ne_words$articles)
+levels(ne_words$articles) <- paste(rep('Article', 12), 1:12, sep = ' ')
+
+# Using the highest tf-idf visualize the top 1 unique word in each of the 12 articles
+ne_words %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = tf_idf, n = 1) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  geom_col() +
+  labs(x = "TF-IDF", y = NULL,title = "Top 10 Words in Northeast by TF-IDF", cex.lab = .4)
+
+# Using the highest tf-idf visualize the top 5 unique word in each of the 12 articles with facet wrap
+ne_words %>% 
+  group_by(articles) %>% 
+  slice_max(order_by = tf_idf, n = 5) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = tf_idf, fct_reorder(word, tf_idf), fill = articles)) +
+  facet_wrap(~articles, scales = "free") + 
+  geom_col(show.legend = FALSE) +
+  labs(x = "TF-IDF", y = NULL,title = "Top 10 Words in Northeast by TF-IDF", cex.lab = .4)
+
+```
+
+TF-IDF is interesting in that we can clear see that each article is focused on a different aspect of climate change. Some, I assume are political as there are mentions of politicians such as Obama in Article as well as foreign countries such as China in article 3. Whereas others are focused more on science, most likely articles 12 and 6 which top unique words were co2 and hydrogen. Other articles are focused on renewable energy and environmentalist like articles 5 and 10 which are likely encouraging people to focus on climate change and the threats it poses to our societies. Finally, there is also a focus on billionaires and the roles they play to end climate change with the term Branson in article 9. Branson is Virgin Group CEO who has offered $25 million to the person who can figure out how to remove greenhouse gases from the atmosphere. These topics show that in the northeast the discourse surrounding climate change is mostly focused on science, environmentalist and politics.
+
+
+
+# AFINN Sentiment Analysis
+
+```{r, message = FALSE, warning = FALSE}
+# get all the words into one cell using the bag-of-words corpus 
+ne_text <- northeast_corpus[,3]
+all_ne <- data_prep(ne_text, 'V1', 'V12')
+
+# unnest, take out stopwords and take a count
+all_ne_words <- all_ne %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>% 
+  count(word, sort=TRUE)
+
+ne_sentiment_affin <- all_ne_words %>%
+  inner_join(get_sentiments("afinn")) #using a inner join to match words and add the sentiment variable
+
+# changing colors so negative and positive are different colors
+fill <- ne_sentiment_affin  %>% mutate(fill = ifelse(ne_sentiment_affin$value >=1, "green",ifelse(ne_sentiment_affin$value <= -1,"red","blue")))
+
+# making new variable a factor
+fill$fill <- as.factor(fill$fill)
+
+# plotting sentiment for northeast corpus
+ggplot(data = fill, aes(x=value, fill = fill)) +
+  geom_histogram(show.legend = FALSE) +
+  ggtitle("Northeast Corpus Sentiment Range") + stat_bin(bins = 10) + theme(legend.position = "none")
+
+```
+As we can see the sentiment seems to be leaning negative towards climate change. However, we also see a decent amount of positive sentiment towards climate change. This makes sense as many articles may be talking about the prospect and optimism of creating a greener world, whereas other articles may talk moreso about the threats and dangers of climate change. 
+
+# Word Cloud
+
+```{r Create word cloud}
+## Construct a word cloud of the top 100 words (by frequency from performing tokenization)
+set.seed(2000)
+ggplot(all_ne_words[1:50,], aes(label = word, size = n, color = n)) +
+  geom_text_wordcloud() +
+  theme_minimal() + 
+  scale_size_area(max_size = 12)
+```
+The word cloud provides some interesting additional words that we might not have seen in our IT-IDF. For example, words like research and scientific come up. This might mean that the northeast values facts and research surrounding climate change. 
+
+# Implications and Recommended Next Steps
+
+## Patterns We See & Implications
+
+We see no significant patters in sentiment analysis. Which might be expected for a topic like climate change, people speaking about the dangers and warning as well as people speaking positively about green energy and other environmental feats. We also saw a decent amount of words like research and scientific come up. This might mean that the Northeast values facts and research surrounding climate change. From the TF-IDF we saw that topics in the northeast surrounding climate change is mostly focused on science, environmentalist and politics. Ultimately, the implications of these patterns are that the Northeast is taking climate change seriously. Which means we might be able to see significant changes or innovations come out of the Northeast in the coming years regarding climate change. 
+
+## Additional Information I May Want & Potential Next Steps 
+
+I might want to scrape other things to confirm that this is actually the sentiment of Northeast. For example, I would be interested in looking at different data source such as tweets and news broadcasts.This would give a broader view of the actual sentiment of the people of the area, unbiased of news sources. Some possible next steps would also be to do a deeper dive into sentiment analysis. I could potentially use different sentiment tools such as NCR lexicon to see more closely what the feelings towards climate change actually are. 
+
+
+
+
+
